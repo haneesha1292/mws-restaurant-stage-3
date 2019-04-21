@@ -8,6 +8,7 @@ const webp = require('gulp-webp');
 const responsive = require('gulp-responsive');
 const $ = require('gulp-load-plugins')();
 const cleanCSS = require('gulp-clean-css');
+const rename = require('gulp-rename');
 const sourcemaps = require('gulp-sourcemaps');
 const babel = require('gulp-babel');
 const concat = require('gulp-concat');
@@ -132,11 +133,13 @@ gulp.task('html-copy2build', () =>
 
 // Minify CSS using clean-css.
 gulp.task('css-minify', () => {
-  return gulp.src('app/css/**/*.css')
+  // return gulp.src('app/css/**/*.css')
+  return gulp.src('app/css/styles.css')
     .pipe(cleanCSS({debug: true}, (details) => {
       console.log(`${details.name}: ${details.stats.originalSize}`);
       console.log(`${details.name}: ${details.stats.minifiedSize}`);
     }))
+    .pipe(rename({suffix: '.min'}))
   .pipe(gulp.dest('build/css'));
 });
 
@@ -149,17 +152,11 @@ gulp.task('css-copy2build', () =>
 
 /**
  * JavaScript
- * - js-copy2build
  * - js-babel
  * - js-minify-main
  * - js-minify-resto
+ * - js-minify-review
  */
-
-// Copy JavaScript from app to build.
-gulp.task('js-copy2build', () =>
-  gulp.src('app/js/**/*.js')
-  .pipe(gulp.dest('build/js'))
-);
 
 // http://babeljs.io/docs/setup/#installation
 // https://babeljs.io/docs/usage/babelrc/
@@ -203,7 +200,7 @@ gulp.task('js-minify-main', () => {
 
 gulp.task('js-minify-resto', () => {
   return gulp.src([
-    'app/js/dbhelper.js', 'app/js/restaurant_info.js'
+    'app/js/dbhelper.js', 'app/js/resto-bundle.js'
     ])
     .pipe(sourcemaps.init())
     .pipe(babel())
@@ -213,6 +210,17 @@ gulp.task('js-minify-resto', () => {
     .pipe(gulp.dest('build/js'));
 });
 
+gulp.task('js-minify-review', () => {
+  return gulp.src([
+    'app/js/dbhelper.js', 'app/js/review-bundle.js'
+    ])
+    .pipe(sourcemaps.init())
+    .pipe(babel())
+    .pipe(concat('review-bundle.min.js'))
+    .pipe(uglify())
+    .pipe(sourcemaps.write('.'))
+    .pipe(gulp.dest('build/js'));
+});
 
 /*
  * Progressive Web Apps
@@ -255,6 +263,7 @@ gulp.task('pwa-manifest-copy2build', () =>
 
 /**
  * Default / Watch
+ * - CSS / Sass is handled by webpack
  */
 
 // Default Gulp task.
@@ -265,10 +274,7 @@ gulp.task('watch', () => {
   gulp.watch('app/img/**', ['images-copy2build']);
   gulp.watch('app/*.html', ['html-copy2build']);
   gulp.watch('app/css/**/*.css', ['css-copy2build']);
-  // gulp.watch('app/js/**/*.js', ['js-copy2build']);
-  // gulp.watch('app/js/**/*.js', ['js-minify-idb']);
   gulp.watch('app/js/**/*.js', ['build-js']);
-  // gulp.watch('app/js/**/*.js', ['babel']);
   gulp.watch('app/manifest.json', ['pwa-manifest-copy2build']);
   gulp.watch('src/js/sw.js', ['pwa-service-worker']);
 });
@@ -294,7 +300,7 @@ gulp.task('build-js', cb => {
   runSequence(
     'clean-js',
     'js-minify-idb',
-    ['js-minify-main', 'js-minify-resto'],
+    ['js-minify-main', 'js-minify-resto', 'js-minify-review'],
     'pwa-service-worker',
     cb);
 });
@@ -305,9 +311,8 @@ gulp.task('build', cb => {
     'clean-build',
     'build-images',
     'html-copy2build',
-    'css-minify',
-    // 'js-babel',
-    ['js-minify-idb', 'js-minify-main', 'js-minify-resto'],
+    'css-copy2build',
+    ['js-minify-idb', 'js-minify-main', 'js-minify-resto', 'js-minify-review'],
     'pwa-manifest-copy2build', 'pwa-service-worker',
     cb);
 });

@@ -30,6 +30,8 @@ class DBHelper {
     return altTexts[id];
   }
 
+  // Alert user that data may not be current
+  // "You're offline and viewing stored data."
   static messageOffline() {
     const lastUpdated = this.getLastUpdated();
     if (lastUpdated) {
@@ -38,39 +40,55 @@ class DBHelper {
     offlineMessage.style.display = 'block';
   }
 
+  // Alert user that there is no data available.
+  // "You're offline and local data is unavailable."
   static messageNoData() {
     //
     noDataMessage.style.display = 'block';
   }
 
+  // Alert user that data has been saved for offline.
+  // "Server data was saved for offline mode.""
   static messageDataSaved() {
     const lastUpdated = this.getLastUpdated();
     if (lastUpdated) {dataSavedMessage.textContent += ' on ' + lastUpdated;}
     dataSavedMessage.style.display = 'block';
   }
 
+  // Alert user that data couldn't be saved offline
+  // "Server data couldn't be saved offline.""
   static messageSaveError() {
     saveErrorMessage.style.display = 'block';
   }
 
-  // Util network function.
   static getLastUpdated() {
     return localStorage.getItem('lastUpdated');
   }
 
-  // Util network function.
   static setLastUpdated(date) {
     localStorage.setItem('lastUpdated', date);
   }
 
+  /*
+   * logResult is available for debugging puprposes, it does some logging
+   * of the JSON data.
+   */
   static logResult(result) {
     console.log(result);
   }
 
+  /*
+   * The fetch call returns a promise that resolves to a response object.
+   * If the request does not complete, .catch takes over and is passed the
+   * corresponding error.
+   */
   static logError(error) {
     console.log('[ERROR] Looks like there was a problem: \n', error);
   }
 
+  /*
+   * validateResponse checks if the response is valid (is it a 200-299?).
+   */
   static validateResponse(response) {
     if (!response.ok) {
       throw Error(response.statusText);
@@ -78,10 +96,25 @@ class DBHelper {
     return response;
   }
 
+  /*
+   * readResponseAsJSON reads the body of the response using the Response.json()
+   * method.
+   */
   static readResponseAsJSON(response) {
     return response.json();
   }
 
+  /*
+   * readResponseAsText reads the body of the response using the Response.text()
+   * method.
+   */
+  static readResponseAsText(response) {
+    return response.text();
+  }
+
+  /**
+   * Get the database URL.
+   */
   static get DATABASE_URL() {
     const port = 1337;
     return `http://localhost:${port}`;
@@ -94,16 +127,34 @@ class DBHelper {
     return fetch(pathToResource)
       .then(this.validateResponse)
       .then(this.readResponseAsJSON)
-
   }
 
-  
+  /**
+   * postRequest
+   */
+  static postRequest(pathToAPI, data) {
+    const headers = new Headers({'Content-Type': 'application/json'});
+    const body = JSON.stringify(data);
+    return fetch(pathToAPI, {
+      method: 'POST',
+      headers: headers,
+      body: body
+    })
+    .then(this.validateResponse)
+    .then(this.readResponseAsText)
+  }
+
+  /**
+   * Returns the relative url for a restaurant.
+   */
   static getRestaurantURL(restaurant) {
     return `restaurant.html?id=${restaurant.id}`
   }
 
+  /**
+   * Returns the restaurant image URL.
+   */
   static getImageUrlForRestaurant(restaurant, imageType, width) {
-    // Default image type is jpeg.
     let fileExtension = 'jpg';
     switch (imageType) {
       case 'jpeg':
